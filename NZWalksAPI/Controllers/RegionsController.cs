@@ -8,6 +8,7 @@ using NZWalks.API.Data;
 using NZWalks.API.Models.Domain;
 using NZWalks.API.Models.DTO;
 using NZWalks.API.Repositories;
+using System.Text.Json;
 
 namespace NZWalks.API.Controllers
 {
@@ -19,25 +20,40 @@ namespace NZWalks.API.Controllers
         private readonly NZWalksDbContext dbContext;
         private readonly IRegionRepository regionRespository;
         private readonly IMapper mapper;
+        private readonly ILogger<RegionsController> logger;
 
-        public RegionsController(NZWalksDbContext dbContext, IRegionRepository regionRespository, IMapper mapper)
+        public RegionsController(NZWalksDbContext dbContext
+            , IRegionRepository regionRespository,
+            IMapper mapper,
+            ILogger<RegionsController> logger)
         {
             this.dbContext = dbContext;
             this.regionRespository = regionRespository;
             this.mapper = mapper;
+            this.logger = logger;
         }
 
         //GET ALL REGION
         //GET: http://localhost:portnumber/regions
         [HttpGet]
-        [Authorize(Roles ="Reader")]
+        //[Authorize(Roles ="Reader")]
         public async Task<IActionResult> GetAll()
         {
-            //get data from database- domain models
-            var regionsDomain= await regionRespository.GetAllAsync();
+            try
+            {
+                //get data from database- domain models
+                var regionsDomain = await regionRespository.GetAllAsync();
 
-            //return DTOs
-            return Ok(mapper.Map<List<RegionDto>>(regionsDomain));
+                //return DTOs
+                logger.LogInformation($"Finished GetAllRegions request with data:{JsonSerializer.Serialize(regionsDomain)}");
+                return Ok(mapper.Map<List<RegionDto>>(regionsDomain));
+            }
+            catch(Exception ex)
+            {
+                logger.LogError(ex, ex.Message);
+                throw;
+            }
+            
         }
 
 
@@ -45,7 +61,7 @@ namespace NZWalks.API.Controllers
         //GET: http://localhost:portnumber/regions/{id}
         [HttpGet]
         [Route("{id:Guid}")]
-        [Authorize(Roles = "Reader")]
+        //[Authorize(Roles = "Reader")]
         public async Task<IActionResult> GetById([FromRoute] Guid id)
         {
             //get domain models from database
@@ -66,7 +82,7 @@ namespace NZWalks.API.Controllers
         //POST: http://localhost:portnumber/regions/
         [HttpPost]
         [ValidateModel]
-        [Authorize(Roles = "Writer")]
+        //[Authorize(Roles = "Writer")]
         public async Task<IActionResult> Create([FromBody] AddRegionRequestDto addRegionRequestDto)
         {
             
@@ -89,7 +105,7 @@ namespace NZWalks.API.Controllers
         [HttpPut]
         [Route("{id:Guid}")]
         [ValidateModel]
-        [Authorize(Roles = "Writer")]
+        //[Authorize(Roles = "Writer")]
         public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdateRegionRequestDto updateRegionRequestDto)
         {
            
@@ -113,7 +129,7 @@ namespace NZWalks.API.Controllers
         //DELETE: http://localhost:portnumber/regions/{id}
         [HttpDelete]
         [Route("{id:Guid}")]
-        [Authorize(Roles = "Writer, Reader")]
+        //[Authorize(Roles = "Writer, Reader")]
         public async Task<IActionResult> Delete([FromRoute] Guid id)
         {
             //get domain models from database
