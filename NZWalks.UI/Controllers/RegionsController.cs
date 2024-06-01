@@ -2,6 +2,7 @@
 using NZWalks.UI.Models;
 using NZWalks.UI.Models.DTO;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 
@@ -60,24 +61,70 @@ namespace NZWalks.UI.Controllers
                 Content = new StringContent(JsonSerializer.Serialize(model), Encoding.UTF8, "application/json")
             };
 
-            //Send Request
-            try
-            {
+        
                 var httpResponseMessage = await client.SendAsync(httpRequestMassege);
                 httpResponseMessage.EnsureSuccessStatusCode();
                 var response= await httpResponseMessage.Content.ReadFromJsonAsync<RegionDto>();
                 if(response is not null)
                     return RedirectToAction("Index", "Regions");
-            }
-
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);  
-            }
-
-
+    
             return View();
 
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(Guid id)
+        {
+            //Create Client
+            var client = httpClientFactory.CreateClient();
+            var response = await client.GetFromJsonAsync<RegionDto>($"https://localhost:7281/api/Regions/{id.ToString()}");
+            if(response is not null)
+            {
+                return View(response);
+            }
+            return View(null);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(RegionDto request)
+        {
+            //Create Client
+            var client = httpClientFactory.CreateClient();
+            var httpRequestMassege = new HttpRequestMessage()
+            {
+                Method = HttpMethod.Put,
+                RequestUri = new Uri($"https://localhost:7281/api/Regions/{request.Id}"),
+                Content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json")
+            };
+            var httpResponseMessage = await client.SendAsync(httpRequestMassege);
+            httpResponseMessage.EnsureSuccessStatusCode();
+
+            var response = await httpResponseMessage.Content.ReadFromJsonAsync<RegionDto>();
+            if (response is not null)
+            {
+                return RedirectToAction("Edit", "Regions");
+            }
+                return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Delete(RegionDto request)
+        {
+            try
+            {
+                //Create Client
+                var client = httpClientFactory.CreateClient();
+                var httpResponseMessage = await client.DeleteAsync($"https://localhost:7281/api/Regions/{request.Id}");
+                httpResponseMessage.EnsureSuccessStatusCode();
+
+                return RedirectToAction("Index", "Regions");
+            }
+            catch(Exception ex) 
+            {
+                //
+            }
+            return View("Edit");
+        }
+
     }
 }
